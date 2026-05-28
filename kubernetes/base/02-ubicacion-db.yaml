@@ -1,0 +1,74 @@
+# ============================================================
+#  ubicacion-db — SQL Server 2022
+# ============================================================
+apiVersion: v1
+kind: Secret
+metadata:
+  name: ubicacion-db-secret
+  namespace: inventario
+type: Opaque
+stringData:
+  username: sa
+  password: "Inventario#2025"   # cambiar en producción
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ubicacion-db
+  namespace: inventario
+  labels:
+    app: ubicacion-db
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ubicacion-db
+  template:
+    metadata:
+      labels:
+        app: ubicacion-db
+    spec:
+      containers:
+        - name: ubicacion-db
+          image: mcr.microsoft.com/mssql/server:2022-latest
+          ports:
+            - containerPort: 1433
+          env:
+            - name: ACCEPT_EULA
+              value: "Y"
+            - name: SA_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: ubicacion-db-secret
+                  key: password
+          volumeMounts:
+            - name: sqldata
+              mountPath: /var/opt/mssql
+      volumes:
+        - name: sqldata
+          persistentVolumeClaim:
+            claimName: ubicacion-db-pvc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ubicacion-db
+  namespace: inventario
+spec:
+  type: ClusterIP
+  selector:
+    app: ubicacion-db
+  ports:
+    - port: 1433
+      targetPort: 1433
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: ubicacion-db-pvc
+  namespace: inventario
+spec:
+  accessModes: [ReadWriteOnce]
+  resources:
+    requests:
+      storage: 5Gi
