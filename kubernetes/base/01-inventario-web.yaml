@@ -28,6 +28,7 @@ spec:
             - configMapRef:
                 name: egi-config
           env:
+            # ── SQL Server ──────────────────────────────────
             - name: SQL_USER
               valueFrom:
                 secretKeyRef:
@@ -38,6 +39,33 @@ spec:
                 secretKeyRef:
                   name: ubicacion-db-secret
                   key: password
+            # ── MongoDB ─────────────────────────────────────
+            - name: MONGO_USER
+              valueFrom:
+                secretKeyRef:
+                  name: inventario-db-secret
+                  key: username
+            - name: MONGO_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: inventario-db-secret
+                  key: password
+            # ── LDAP ────────────────────────────────────────
+            - name: LDAP_ADMIN_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: ldap-secret
+                  key: admin-password
+            # ── Sesión ──────────────────────────────────────
+            - name: SESSION_SECRET
+              value: "cambia-esto-en-produccion"
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "100m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
 ---
 apiVersion: v1
 kind: Service
