@@ -1,5 +1,5 @@
 # ============================================================
-#  ldap-service — OpenLDAP
+#  ldap-service — OpenLDAP con persistencia
 # ============================================================
 apiVersion: v1
 kind: Secret
@@ -9,6 +9,28 @@ metadata:
 type: Opaque
 stringData:
   admin-password: "LdapAdmin#2025"   # cambiar en producción
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: ldap-data-pvc
+  namespace: inventario
+spec:
+  accessModes: [ReadWriteOnce]
+  resources:
+    requests:
+      storage: 1Gi
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: ldap-config-pvc
+  namespace: inventario
+spec:
+  accessModes: [ReadWriteOnce]
+  resources:
+    requests:
+      storage: 500Mi
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -35,7 +57,7 @@ spec:
             - containerPort: 636
           env:
             - name: LDAP_ORGANISATION
-              value: "ITU"
+              value: "ITU Universidad"
             - name: LDAP_DOMAIN
               value: "itu.edu"
             - name: LDAP_ADMIN_PASSWORD
@@ -45,6 +67,27 @@ spec:
                   key: admin-password
             - name: LDAP_TLS
               value: "true"
+            - name: LDAP_TLS_VERIFY_CLIENT
+              value: "never"
+          volumeMounts:
+            - name: ldap-data
+              mountPath: /var/lib/ldap        # datos de usuarios
+            - name: ldap-config
+              mountPath: /etc/ldap/slapd.d    # configuración
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "100m"
+            limits:
+              memory: "512Mi"
+              cpu: "250m"
+      volumes:
+        - name: ldap-data
+          persistentVolumeClaim:
+            claimName: ldap-data-pvc
+        - name: ldap-config
+          persistentVolumeClaim:
+            claimName: ldap-config-pvc
 ---
 apiVersion: v1
 kind: Service
